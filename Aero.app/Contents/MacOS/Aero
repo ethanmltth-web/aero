@@ -1,0 +1,32 @@
+#!/bin/bash
+# Launch Aero from this app bundle.
+# In the project folder it uses the local environment.
+# In /Applications it uses the copy of the code inside the app,
+# and a private Python in Application Support.
+set -u
+MACOS_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP="$(cd "$MACOS_DIR/../.." && pwd)"
+PARENT="$(cd "$APP/.." && pwd)"
+RESOURCES="$APP/Contents/Resources"
+SUPPORT="$HOME/Library/Application Support/Aero"
+export QT_API=pyside6
+export PYTHONUNBUFFERED=1
+
+if [ -d "$PARENT/aero_app" ] && [ -x "$PARENT/.venv/bin/python" ]; then
+  cd "$PARENT"
+  exec "$PARENT/.venv/bin/python" -m aero_app "$@" >>"$PARENT/aero.log" 2>&1
+fi
+
+mkdir -p "$SUPPORT"
+LOG="$SUPPORT/aero.log"
+PY="$SUPPORT/.venv/bin/python"
+if [ ! -x "$PY" ]; then
+  osascript -e 'display dialog "Aero is installing its Python tools. This can take a few minutes the first time." buttons {"OK"} with title "Aero Wind Tunnel"' >/dev/null
+  if ! bash "$RESOURCES/setup.sh" "$SUPPORT" >>"$LOG" 2>&1; then
+    osascript -e 'display dialog "Aero could not finish setup. See the log in Library/Application Support/Aero/aero.log" buttons {"OK"} with title "Aero Wind Tunnel"' >/dev/null
+    exit 1
+  fi
+fi
+export PYTHONPATH="$RESOURCES${PYTHONPATH:+:$PYTHONPATH}"
+cd "$SUPPORT"
+exec "$PY" -m aero_app "$@" >>"$LOG" 2>&1

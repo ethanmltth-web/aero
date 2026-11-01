@@ -1,0 +1,7 @@
+.venv/
+.python/
+.tools/
+__pycache__/
+*.py[cod]
+.DS_Store
+aero.log
